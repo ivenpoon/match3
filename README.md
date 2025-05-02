@@ -1,16 +1,16 @@
 # Match3 Game
 
-A fun and interactive card matching game built with Vue 3 and Vite. Match pairs of cards from the main board while managing two side decks in this engaging memory challenge!
+A fun and interactive card matching game built with Vue 3 and Vite all through vibe coding using Cursor. Match 3 of the same cards to clear the board!
 
 ![Gameplay Demo](src/assets/gameplay.gif)
 
 ## Game Rules
 
 1. Cards are randomly distributed on the main board and in two side decks
-2. Click cards to reveal their emoji symbols
-3. Match pairs of identical cards to clear them
+2. Select them onto the rack
+3. Match 3 identical cards to clear them
 4. Use the side decks strategically to complete matches
-5. Clear all cards to win the game!
+5. Clear all cards and win the game!
 
 ## Project Setup
 
@@ -59,4 +59,4 @@ Feel free to submit issues and enhancement requests!
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
