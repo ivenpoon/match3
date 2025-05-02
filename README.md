@@ -2,17 +2,7 @@
 
 A fun and interactive card matching game built with Vue 3 and Vite. Match pairs of cards from the main board while managing two side decks in this engaging memory challenge!
 
-![Game Screenshot](src/assets/game-screenshot.png)
-![Reference Layout](src/assets/reference-layout.png)
-
-## Game Features
-
-- Interactive card matching gameplay
-- Main game board with matching cards
-- Two side decks with 12 cards each
-- Beautiful emoji-based card designs
-- Score tracking and game state management
-- "Play Again" feature for endless fun
+![Gameplay Demo](src/assets/gameplay.gif)
 
 ## Game Rules
 
@@ -62,12 +52,6 @@ npm run build
 - Vite
 - TypeScript
 - CSS3 for animations and layout
-
-## Image Assets
-
-Before deploying, please add the following images to the `src/assets/` directory:
-- `game-screenshot.png`: A screenshot of the game in action
-- `reference-layout.png`: Reference image showing the game layout
 
 ## Contributing
 
