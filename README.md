@@ -33,7 +33,7 @@ A fun and interactive card matching game built with Vue 3 and Vite. Match pairs 
 
 ```sh
 # Clone the repository
-git clone https://github.com/yourusername/match3.git
+git clone https://github.com/ivenpoon/match3.git
 
 # Navigate to project directory
 cd match3
