@@ -35,7 +35,7 @@
       </div>
 
       <div class="rack" :style="{ width: `${boardWidth}px` }">
-        <div class="rack__slots">
+        <div class="rack__slots" :style="{ gap: `${rackGap}px` }">
           <div 
             v-for="index in MAX_RACK_CARDS" 
             :key="index"
@@ -94,6 +94,19 @@ const isLoading = ref(false)
 const boardRef = ref(null)
 const boardWidth = ref(1000)
 const boardHeight = ref(600)
+
+// Calculate dynamic rack gap so all slots fit in one row
+const rackGap = computed(() => {
+  // Get card width from CSS variable or use default
+  const style = getComputedStyle(document.documentElement)
+  const cardWidth = parseFloat(style.getPropertyValue('--card-width')) || 80
+  // Use boardWidth for rack width
+  const availableWidth = boardWidth.value
+  // Calculate gap so all slots fit in one row
+  const totalCardWidth = MAX_RACK_CARDS * cardWidth
+  const gap = Math.max(4, (availableWidth - totalCardWidth) / (MAX_RACK_CARDS - 1))
+  return gap
+})
 
 // Initialize game state management
 const {
@@ -238,10 +251,10 @@ const isRemoved = (card) => removedCards.value.has(card.id)
 
 .rack__slots {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: 0;
   justify-content: center;
   padding: var(--spacing-sm) 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .rack__slot-wrapper {
