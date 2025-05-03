@@ -13,7 +13,7 @@
     </header>
     
     <main class="game__main">
-      <div class="board">
+      <div class="board" ref="boardRef" :style="{ width: `${boardWidth}px`, height: `${boardHeight}px` }">
         <TransitionGroup name="card" tag="div" class="board__grid">
           <Card
             v-for="card in cards"
@@ -34,7 +34,7 @@
         </TransitionGroup>
       </div>
 
-      <div class="rack">
+      <div class="rack" :style="{ width: `${boardWidth}px` }">
         <div class="rack__slots">
           <div 
             v-for="index in MAX_RACK_CARDS" 
@@ -85,12 +85,15 @@
  * - Includes debug functionality for testing
  */
 
-import { computed, onMounted, ref, nextTick } from 'vue'
+import { computed, onMounted, ref, nextTick, onUnmounted } from 'vue'
 import Card from './Card.vue'
 import { useGameState } from '../composables/useGameState'
 
 const MAX_RACK_CARDS = 7
 const isLoading = ref(false)
+const boardRef = ref(null)
+const boardWidth = ref(1000)
+const boardHeight = ref(600)
 
 // Initialize game state management
 const {
@@ -104,12 +107,35 @@ const {
   isGameOver,
   isGameWon,
   removedCards,
-  shuffleAvailableCards
+  shuffleAvailableCards,
+  calculateCardPositions
 } = useGameState()
+
+// Handle window resize
+const handleResize = () => {
+  if (boardRef.value) {
+    const containerWidth = boardRef.value.parentElement.clientWidth
+    const containerHeight = window.innerHeight * 0.7 // Use 70% of viewport height
+    // Calculate scaling factor while maintaining aspect ratio, but never scale above 1
+    const scaleX = containerWidth / 1000
+    const scaleY = containerHeight / 600
+    const scale = Math.min(scaleX, scaleY, 1)
+    boardWidth.value = 1000 * scale
+    boardHeight.value = 600 * scale
+    // Update card positions based on new board dimensions
+    calculateCardPositions(boardWidth.value, boardHeight.value)
+  }
+}
 
 // Initialize the game when component is mounted
 onMounted(() => {
   initializeGame()
+  handleResize()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 
 /**
@@ -140,9 +166,9 @@ const isRemoved = (card) => removedCards.value.has(card.id)
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
-  padding: 20px;
+  padding: var(--spacing-md);
   width: 100%;
-  max-width: 1200px;
+  max-width: 100vw;
   margin: 0 auto;
 }
 
@@ -152,19 +178,22 @@ const isRemoved = (card) => removedCards.value.has(card.id)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
 }
 
 .game__controls {
   display: flex;
-  gap: 20px;
+  gap: var(--spacing-sm);
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .game__stats {
-  font-size: 1.2rem;
+  font-size: var(--font-size-md);
   color: #333;
-  min-width: 200px; /* Prevent layout shift */
+  min-width: 200px;
 }
 
 /* Main game area */
@@ -173,16 +202,20 @@ const isRemoved = (card) => removedCards.value.has(card.id)
   flex-direction: column;
   align-items: center;
   width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* Game board */
 .board {
   position: relative;
-  width: 1000px;
-  height: 600px;
   background: rgba(255, 255, 255, 0.5);
   border-radius: var(--border-radius);
-  overflow: visible; /* Allow cards to overflow for hover effects */
+  overflow: visible;
+  transition: width 0.3s ease, height 0.3s ease;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
 }
 
 .board__grid {
@@ -193,18 +226,22 @@ const isRemoved = (card) => removedCards.value.has(card.id)
 
 /* Card rack styling */
 .rack {
-  width: 1000px;
   background: rgba(255, 255, 255, 0.8);
   border-radius: var(--border-radius);
-  margin-top: 20px;
-  padding: 10px;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm);
+  transition: width 0.3s ease;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
 }
 
 .rack__slots {
   display: flex;
-  gap: 10px;
+  gap: var(--spacing-sm);
   justify-content: center;
-  padding: 10px 0;
+  padding: var(--spacing-sm) 0;
+  flex-wrap: wrap;
 }
 
 .rack__slot-wrapper {
@@ -213,28 +250,32 @@ const isRemoved = (card) => removedCards.value.has(card.id)
   position: relative;
 }
 
-.rack__slot {
-  width: 100%;
-  height: 100%;
-  border: 2px dashed #ccc;
-  border-radius: var(--border-radius);
-  background: rgba(255, 255, 255, 0.3);
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .game__header {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .game__controls {
+    justify-content: center;
+  }
+  
+  .game__stats {
+    text-align: center;
+  }
 }
 
-/* Card transitions */
-/* .card-enter-active {
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  position: absolute;
+@media (max-width: 480px) {
+  :root {
+    --card-width: min(12vw, 80px);
+    --card-height: min(15vw, 100px);
+  }
+  
+  .game {
+    padding: var(--spacing-sm);
+  }
 }
-
-.card-leave-active {
-  position: absolute;
-}
-
-.card-enter-from,
-.card-leave-to {
-  transform: translateY(-8px);
-} */
 
 /* Game over overlay */
 .overlay {

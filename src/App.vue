@@ -9,11 +9,23 @@ import './assets/main.css'
 
 <style>
 :root {
-  --card-width: 80px;
-  --card-height: 100px;
+  /* Base card dimensions - will scale with viewport */
+  --card-width: min(8vw, 80px);
+  --card-height: min(10vw, 100px);
   --border-radius: 8px;
   --primary-color: #4CAF50;
   --secondary-color: #2196F3;
+  
+  /* Responsive spacing */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  
+  /* Responsive font sizes */
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
 }
 
 * {

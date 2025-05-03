@@ -1,6 +1,15 @@
 import { ref, computed } from 'vue'
 
 /**
+ * Game State and Layout Logic for Match-3
+ * ---------------------------------------
+ * - All card, deck, and board layout is dynamically calculated based on the
+ *   current size of the game board container.
+ * - Constants at the top control all layout and game rules.
+ * - Designed for performance, maintainability, and responsiveness.
+ */
+
+/**
  * Game Configuration Constants
  * These values are defined outside the composable for optimization:
  * - Prevents recalculation on component re-renders
@@ -10,14 +19,16 @@ import { ref, computed } from 'vue'
 const ANIMALS = ['🐱', '🐶', '🐼', '🐸', '🦊', '🐰', '🦉']  // Available emoji sets
 const CARDS_PER_SET = 3                         // Number of matching cards needed
 const MAX_RACK_CARDS = 7                        // Maximum cards allowed in the rack
-const CARD_WIDTH = 80                           // Width of each card in pixels
-const CARD_HEIGHT = 100                         // Height of each card in pixels
-const CARD_SPACING_X = 85                       // Horizontal spacing between cards
-const CARD_SPACING_Y = 105                      // Vertical spacing between cards
-const BOARD_WIDTH = 1000                        // Total board width
-const BOARD_HEIGHT = 600                        // Total board height
+const BASE_CARD_WIDTH = 80                      // Base width of each card in pixels
+const BASE_CARD_HEIGHT = 100                    // Base height of each card in pixels
+const BASE_CARD_SPACING_X = 85                  // Base horizontal spacing between cards
+const BASE_CARD_SPACING_Y = 105                 // Base vertical spacing between cards
+const BASE_BOARD_WIDTH = 1000                   // Base board width
+const BASE_BOARD_HEIGHT = 600                   // Base board height
 const DECK_SIZE = 12                            // Number of cards per side deck
-const DECK_SPACING = 20                         // Vertical spacing between deck cards
+const BASE_DECK_SPACING = 20                    // Base vertical spacing between deck cards
+const GAP_RATIO = 0.05; // Default: 5% of board width for each gap
+const CARD_GAP_PX = 5;      // Gaps between cards in pixels
 
 /**
  * Layer Configuration
@@ -50,14 +61,14 @@ const TOTAL_CARDS = TOTAL_BOARD_CARDS + (DECK_SIZE * 2)
 const TOTAL_SETS = Math.floor(TOTAL_CARDS / CARDS_PER_SET)
 
 // Board centering calculations (done once)
-const BASE_WIDTH = LAYERS[0].cols * CARD_SPACING_X
-const BASE_HEIGHT = LAYERS[0].rows * CARD_SPACING_Y
-const BASE_X_OFFSET = (BOARD_WIDTH - BASE_WIDTH) / 2
-const BASE_Y_OFFSET = (BOARD_HEIGHT - BASE_HEIGHT) / 2
+const BASE_WIDTH = LAYERS[0].cols * BASE_CARD_SPACING_X
+const BASE_HEIGHT = LAYERS[0].rows * BASE_CARD_SPACING_Y
+const BASE_X_OFFSET = (BASE_BOARD_WIDTH - BASE_WIDTH) / 2
+const BASE_Y_OFFSET = (BASE_BOARD_HEIGHT - BASE_HEIGHT) / 2
 
 // Deck positioning calculations (done once)
-const DECK_HEIGHT = DECK_SIZE * DECK_SPACING + CARD_HEIGHT
-const DECK_START_Y = (BOARD_HEIGHT - DECK_HEIGHT) / 2
+const DECK_HEIGHT = DECK_SIZE * BASE_DECK_SPACING + BASE_CARD_HEIGHT
+const DECK_START_Y = (BASE_BOARD_HEIGHT - DECK_HEIGHT) / 2
 
 /**
  * Main game state composable
@@ -153,10 +164,10 @@ export function useGameState() {
    */
   const hasPhysicalOverlap = (card, other) => {
     return other.layer > card.layer && 
-           other.x < card.x + CARD_WIDTH &&
-           other.x + CARD_WIDTH > card.x &&
-           other.y < card.y + CARD_HEIGHT &&
-           other.y + CARD_HEIGHT > card.y
+           other.x < card.x + BASE_CARD_WIDTH &&
+           other.x + BASE_CARD_WIDTH > card.x &&
+           other.y < card.y + BASE_CARD_HEIGHT &&
+           other.y + BASE_CARD_HEIGHT > card.y
   }
 
   /**
@@ -204,6 +215,57 @@ export function useGameState() {
   }
 
   /**
+   * Calculates card positions based on current board dimensions
+   * @param {number} currentBoardWidth - Current board width
+   * @param {number} currentBoardHeight - Current board height
+   */
+  const calculateCardPositions = (currentBoardWidth, currentBoardHeight) => {
+    const scaleX = currentBoardWidth / BASE_BOARD_WIDTH;
+    const scaleY = currentBoardHeight / BASE_BOARD_HEIGHT;
+    const cardW = BASE_CARD_WIDTH * scaleX;
+    const cardH = BASE_CARD_HEIGHT * scaleY;
+    let cardGap = CARD_GAP_PX;
+    const basePyramidCols = LAYERS[0].cols;
+    const basePyramidRows = LAYERS[0].rows;
+    // Pyramid width/height now includes gaps between cards
+    const pyramidW = basePyramidCols * cardW + (basePyramidCols - 1) * cardGap;
+    const pyramidH = basePyramidRows * cardH + (basePyramidRows - 1) * cardGap;
+    const deckW = cardW;
+    const gapW = currentBoardWidth * GAP_RATIO;
+    const totalGroupW = deckW + gapW + pyramidW + gapW + deckW;
+    const groupXOffset = (currentBoardWidth - totalGroupW) / 2;
+    const pyramidXOffset = groupXOffset + deckW + gapW;
+    const pyramidYOffset = (currentBoardHeight - pyramidH) / 2;
+    // Calculate vertical centering for decks
+    const deckHeight = DECK_SIZE * BASE_DECK_SPACING * scaleY + cardH;
+    const deckStartY = (currentBoardHeight - deckHeight) / 2;
+
+    cards.value = cards.value.map(card => {
+      if (card.location === 'board' && card.col !== undefined && card.row !== undefined && card.layerOffsetX !== undefined && card.layerOffsetY !== undefined) {
+        // Add gap between cards in both x and y directions
+        return {
+          ...card,
+          x: pyramidXOffset + card.col * (cardW + cardGap) + card.layerOffsetX * scaleX,
+          y: pyramidYOffset + card.row * (cardH + cardGap) + card.layerOffsetY * scaleY
+        };
+      } else if (card.location === 'leftDeck' && card.deckIndex !== undefined) {
+        return {
+          ...card,
+          x: groupXOffset,
+          y: deckStartY + card.deckIndex * BASE_DECK_SPACING * scaleY
+        };
+      } else if (card.location === 'rightDeck' && card.deckIndex !== undefined) {
+        return {
+          ...card,
+          x: groupXOffset + deckW + gapW + pyramidW + gapW,
+          y: deckStartY + card.deckIndex * BASE_DECK_SPACING * scaleY
+        };
+      }
+      return card;
+    });
+  }
+
+  /**
    * Initializes or resets the game state
    * Performance optimizations:
    * 1. Batches array operations to minimize reactive updates
@@ -238,8 +300,9 @@ export function useGameState() {
         ...card,
         location: 'leftDeck',
         x: 20,
-        y: DECK_START_Y + (i * DECK_SPACING),
-        layer: i + 1
+        y: DECK_START_Y + (i * BASE_DECK_SPACING),
+        layer: i + 1,
+        deckIndex: i
       }
     })
 
@@ -249,9 +312,10 @@ export function useGameState() {
       return {
         ...card,
         location: 'rightDeck',
-        x: BOARD_WIDTH - CARD_WIDTH - 20,
-        y: DECK_START_Y + (i * DECK_SPACING),
-        layer: i + 1
+        x: BASE_BOARD_WIDTH - BASE_CARD_WIDTH - 20,
+        y: DECK_START_Y + (i * BASE_DECK_SPACING),
+        layer: i + 1,
+        deckIndex: i
       }
     })
 
@@ -268,9 +332,13 @@ export function useGameState() {
             boardCards.push({
               ...card,
               location: 'board',
-              x: col * CARD_SPACING_X + BASE_X_OFFSET + layer.offsetX,
-              y: row * CARD_SPACING_Y + BASE_Y_OFFSET + layer.offsetY,
-              layer: layerNum + 1
+              x: col * BASE_CARD_SPACING_X + BASE_X_OFFSET + layer.offsetX,
+              y: row * BASE_CARD_SPACING_Y + BASE_Y_OFFSET + layer.offsetY,
+              layer: layerNum + 1,
+              col,
+              row,
+              layerOffsetX: layer.offsetX,
+              layerOffsetY: layer.offsetY
             })
             cardIndex++
           }
@@ -403,7 +471,7 @@ export function useGameState() {
       ...card,
       location: 'leftDeck',
       x: 20,
-      y: DECK_START_Y + (i * DECK_SPACING),
+      y: DECK_START_Y + (i * BASE_DECK_SPACING),
       layer: i + 1
     }))
 
@@ -411,8 +479,8 @@ export function useGameState() {
     rightDeck.value = availableByLocation.rightDeck.map((card, i) => ({
       ...card,
       location: 'rightDeck',
-      x: BOARD_WIDTH - CARD_WIDTH - 20,
-      y: DECK_START_Y + (i * DECK_SPACING),
+      x: BASE_BOARD_WIDTH - BASE_CARD_WIDTH - 20,
+      y: DECK_START_Y + (i * BASE_DECK_SPACING),
       layer: i + 1
     }))
 
@@ -429,8 +497,8 @@ export function useGameState() {
             boardCards.push({
               ...card,
               location: 'board',
-              x: col * CARD_SPACING_X + BASE_X_OFFSET + layerConfig.offsetX,
-              y: row * CARD_SPACING_Y + BASE_Y_OFFSET + layerConfig.offsetY,
+              x: col * BASE_CARD_SPACING_X + BASE_X_OFFSET + layerConfig.offsetX,
+              y: row * BASE_CARD_SPACING_Y + BASE_Y_OFFSET + layerConfig.offsetY,
               layer: layerIndex + 1
             })
             cardIndex++
@@ -454,6 +522,7 @@ export function useGameState() {
     isGameOver,
     isGameWon,
     removedCards,
-    shuffleAvailableCards
+    shuffleAvailableCards,
+    calculateCardPositions
   }
 } 
