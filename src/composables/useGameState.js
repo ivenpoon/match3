@@ -132,7 +132,7 @@ export function useGameState() {
     // Batch board card calculations
     const boardCards = cardsByLocation.value.board
     boardCards.forEach(card => {
-      if (!hasPhysicalOverlap(card, boardCards)) {
+      if (!hasPhysicalOverlap(card, boardCards, card._cardW || BASE_CARD_WIDTH, card._cardH || BASE_CARD_HEIGHT)) {
         result.add(card.id)
       }
     })
@@ -160,14 +160,16 @@ export function useGameState() {
    * 
    * @param {Object} card - The card to check
    * @param {Object} other - Another card to check against
+   * @param {number} cardW - Scaled card width
+   * @param {number} cardH - Scaled card height
    * @returns {boolean} True if the cards overlap and other is above card
    */
-  const hasPhysicalOverlap = (card, other) => {
+  const hasPhysicalOverlap = (card, other, cardW, cardH) => {
     return other.layer > card.layer && 
-           other.x < card.x + BASE_CARD_WIDTH &&
-           other.x + BASE_CARD_WIDTH > card.x &&
-           other.y < card.y + BASE_CARD_HEIGHT &&
-           other.y + BASE_CARD_HEIGHT > card.y
+           other.x < card.x + cardW &&
+           other.x + cardW > card.x &&
+           other.y < card.y + cardH &&
+           other.y + cardH > card.y
   }
 
   /**
@@ -195,7 +197,7 @@ export function useGameState() {
     return !cards.value.some(other => 
       other.id !== card.id && 
       !removedCards.value.has(other.id) && 
-      hasPhysicalOverlap(card, other)
+      hasPhysicalOverlap(card, other, card._cardW || BASE_CARD_WIDTH, card._cardH || BASE_CARD_HEIGHT)
     )
   }
 
@@ -246,7 +248,9 @@ export function useGameState() {
         return {
           ...card,
           x: pyramidXOffset + card.col * (cardW + cardGap) + card.layerOffsetX * scaleX,
-          y: pyramidYOffset + card.row * (cardH + cardGap) + card.layerOffsetY * scaleY
+          y: pyramidYOffset + card.row * (cardH + cardGap) + card.layerOffsetY * scaleY,
+          _cardW: cardW, // for overlap check
+          _cardH: cardH  // for overlap check
         };
       } else if (card.location === 'leftDeck' && card.deckIndex !== undefined) {
         return {

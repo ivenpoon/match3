@@ -250,6 +250,15 @@ const isRemoved = (card) => removedCards.value.has(card.id)
   position: relative;
 }
 
+.rack__slot {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #ccc;
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.3);
+  box-sizing: border-box;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .game__header {
